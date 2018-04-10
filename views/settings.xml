@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="odna_stock_settings_view" model="ir.ui.view">
+        <field name="name">odna_stock_settings_view</field>
+        <field name="model">stock.config.settings</field>
+        <field name="inherit_id" ref="stock.view_stock_config_settings"/>
+        <field name="arch" type="xml">  
+            <group name="shipping" position="inside">
+                <label for="easypost_key" string="Easypost API Key"/>
+                <field name="easypost_key"/>
+            </group>
+        </field>
+    </record>
+
+</odoo>
