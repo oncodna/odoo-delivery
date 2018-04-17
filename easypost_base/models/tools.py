@@ -1,8 +1,26 @@
+# -*- coding: utf-8 -*-
+##############################################################################
+#
+#    Copyright (C) OncoDNA <http://www.oncodna.com>
+#    See LICENSE file for full copyright and licensing details.
+#
+##############################################################################
+
 import easypost
 from odoo.exceptions import AccessError, MissingError
 import logging
 
 _logger = logging.getLogger(__name__)
+
+
+def ep_convert_dimension(dimension):
+    ''' Convert dimension from mm to inches '''
+    return round(dimension * 0.0393701, 1)
+
+
+def ep_convert_weight(weight):
+    ''' Convert weight from kg to Oz '''
+    return round(weight * 35.274, 1)
 
 
 def ep_exception(err):
@@ -43,14 +61,16 @@ class EPRule(object):
 
     def convert(self, rset, check_missing=False):
         def get_value():
-            res = rset
+            val = rset
             for attr in self.odoo_attr.split('.'):
-                res = getattr(res, attr)
-            return res
+                if attr == "self":
+                    break
+                val = getattr(val, attr)
+            return val
 
         res = self.convert_fun(rset, get_value())
         if not res and check_missing:
-            raise MissingError('Cannot convert to delivery address: field %s is empty' % self.odoo_field)
+            raise MissingError('Cannot convert object: field %s is empty' % self.odoo_field)
         return self.ep_field, res
 
 

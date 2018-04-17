@@ -9,6 +9,8 @@
             <group name="shipping" position="inside">
                 <label for="easypost_key" string="Easypost API Key"/>
                 <field name="easypost_key"/>
+                <label for="easypost_mode" string="Easypost Environment"/>
+                <field name="easypost_mode"/>
             </group>
         </field>
     </record>

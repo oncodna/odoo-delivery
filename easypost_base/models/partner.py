@@ -15,7 +15,8 @@ carrier_facility	ONDC	The specific designation for the address (only relevant if
 federal_tax_id	1234567890	Federal tax identifier of the person or organization
 state_tax_id	9876543210	State tax identifier of the person or organization
 verify	[delivery, zip4]	The verifications to perform when creating. verify_strict takes precedence
-verify_strict	[delivery, zip4]	The verifications to perform when creating. The failure of any of these verifications causes the whole request to fail"""
+verify_strict	[delivery, zip4]	The verifications to perform when creating. The failure of any of these 
+verifications causes the whole request to fail"""
 
 EP_PARTNER_RULESET = EPRuleSet(
     EPRule("street1", required=True),
