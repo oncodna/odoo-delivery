@@ -1,7 +1,7 @@
 {
-    "name": "Easypost Delivery (base module)",
+    "name": "Easypost Delivery DHL Express",
     "version": "1.0",
-    "depends": ["delivery"],
+    "depends": ["easypost_base"],
     'author': 'OncoDNA',
     'category': 'Stock',
     'license': 'AGPL-3',
@@ -9,8 +9,8 @@
         """,
     'demo': [],
     'data': [
-        'views/settings.xml',
-        'views/carrier.xml',
+        'data/carrier.xml',
+        'data/packaging.xml',
     ],
     'installable': True,
     'auto_install': False,

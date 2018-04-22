@@ -1,16 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
-    <record id="view_delivery_carrier_form_with_provider_dhl" model="ir.ui.view">
-        <field name="name">delivery.carrier.form.provider.dhl</field>
+    <record id="easypost_delivery_carrier_form" model="ir.ui.view">
+        <field name="name">easypost_delivery_carrier_form</field>
         <field name="model">delivery.carrier</field>
         <field name="inherit_id" ref="delivery.view_delivery_carrier_form"/>
         <field name="arch" type="xml">
             <xpath expr="//page[@name='destination']" position='before'>
-                <page string="EasyPost Configuration" attrs="{'invisible': ['!', ('delivery_type', '=like', 'ep\_%%')]}">
+                <page string="EasyPost Configuration" attrs="{'invisible': [('is_easypost', '=', False)]}">
                     <group>
                         <group>
-                            <field name="easypost_account" attrs="{'required': [('delivery_type', '=like', 'ep\_%%')]}"/>
+                            <field name="easypost_account" attrs="{'required': [('is_easypost', '=', True)]}"/>
+                            <field name="is_easypost" invisible="1"/>
                         </group>
                     </group>
                 </page>

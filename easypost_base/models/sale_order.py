@@ -26,11 +26,11 @@ def get_address_from(order, warehouse_partner):
 
 
 EP_SHIPMENT_RULESET = EPRuleSet(
-    EPRule("mode", "company_id.easypost_mode", required=True),
+    EPRule("mode", "carrier_id.prod_environment", convert_fun=lambda _o, value: 'production' if value else 'test'),
     EPRule("to_address", 'partner_shipping_id', required=True,
            convert_fun=lambda order, partner: partner.ep_address_create(verify=True)),
     EPRule("from_address", 'warehouse_id.partner_id', required=True, convert_fun=get_address_from),
-    EPRule("parcel", 'self', required=True, convert_fun=lambda order, _o: order.ep_parcel_create),
+    EPRule("parcel", 'self', required=True, convert_fun=lambda order, _o: order.ep_parcel_create()),
     EPRule("carrier_accounts", 'carrier_id.easypost_account',
            convert_fun=lambda picking, ep_account: [ep_account] if ep_account else []),
 )

@@ -25,7 +25,7 @@ def ep_convert_weight(weight):
 
 def ep_exception(err):
     """TODO: improve this"""
-    error_dic = err.json_body
+    error_dic = err.json_body["error"]
     msg = error_dic["message"]
     if error_dic.get("errors"):
         msg += ":\n"
@@ -43,7 +43,7 @@ def ep_call(env, method_name, *args, **kwargs):
             res = getattr(res, attr)
         return res
 
-    easypost.api_key = env.env.user.company_id.easypost_key
+    easypost.api_key = env.user.company_id.easypost_key
     try:
         method = get_method(method_name)
         return method(*args, **kwargs)
@@ -55,7 +55,7 @@ class EPRule(object):
 
     def __init__(self, ep_field, odoo_attr=None, convert_fun=None, required=False):
         self.ep_field = ep_field
-        self.odoo_field = odoo_attr or ep_field
+        self.odoo_attr = odoo_attr or ep_field
         self.convert_fun = convert_fun or (lambda env, x: x)
         self.required = required
 
@@ -69,8 +69,8 @@ class EPRule(object):
             return val
 
         res = self.convert_fun(rset, get_value())
-        if not res and check_missing:
-            raise MissingError('Cannot convert object: field %s is empty' % self.odoo_field)
+        if not res and check_missing and self.required:
+            raise MissingError('Cannot convert object: field %s is empty' % self.odoo_attr)
         return self.ep_field, res
 
 

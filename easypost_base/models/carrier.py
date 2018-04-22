@@ -6,7 +6,7 @@
 #
 ##############################################################################
 
-from odoo import models, fields, _
+from odoo import models, fields, api, _
 import urllib2
 import base64
 
@@ -14,7 +14,14 @@ import base64
 class EasypostCarrier(models.Model):
     _inherit = 'delivery.carrier'
 
+    @api.multi
+    @api.depends('delivery_type')
+    def _is_easypost(self):
+        for carrier in self:
+            carrier.is_easypost = carrier.delivery_type.startswith("ep_")
+
     easypost_account = fields.Char(string='Easypost Account Number', copy=False)
+    is_easypost = fields.Boolean(string='Easypost Carrier', compute="_is_easypost")
 
     def ep_send_shipping(self, pickings):
         res = []
@@ -24,11 +31,8 @@ class EasypostCarrier(models.Model):
             # TODO: let the user buy an insurance
             shipment = picking.ep_shipment_buy()
             log_message = (_("Shipment created into %s <br/> <b>Tracking Number : </b>%s") %
-                           (self.carrier_id.name, shipment.tracking_code))
-            label_fmt = picking.company_id.easypost_label_format or 'pdf'
-            label_content = urllib2.urlopen(shipment.postage_label.label_url, timeout=5).read()
-            label_data = base64.b64encode(label_content)
-            file_name = 'EasypostLabel-%s.%s' % (shipment.tracking_code, label_fmt)
+                           (self.name, shipment.tracking_code))
+            file_name, label_data = picking.ep_postage_label(shipment=shipment)
             picking.message_post(body=log_message, attachments=[(file_name, label_data)])
             shipping_data = {
                 'exact_price': shipment.selected_rate.rate,
