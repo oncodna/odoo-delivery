@@ -7,7 +7,7 @@
 ##############################################################################
 
 from odoo import models, fields, api, exceptions, _
-from .tools import ep_call, EPRuleSet, EPRule, ep_convert_weight, ep_convert_dimension
+from .tools import ep_call, ep_exec, EPRuleSet, EPRule, ep_convert_weight, ep_convert_dimension
 import urllib2
 import base64
 
@@ -92,31 +92,44 @@ class Picking(models.Model):
         ep_shipment = self.ep_shipment()
         log_message = (_("Shipment created into %s <br/> <b>Tracking Number : </b>%s") %
                        (self.name, ep_shipment.tracking_code))
-        file_name, label_data = self.ep_postage_label(shipment=ep_shipment)
+        file_name, label_data = self.ep_postage_label(shipment=ep_shipment, label_format=label_format)
         self.message_post(body=log_message, attachments=[(file_name, label_data)])
 
     def ep_customsinfo_create(self):
         kwargs = EP_CUSTOMSINFO_RULESET.convert(self, check_missing=True)
-        return ep_call(self.env, "CustomsInfo.create", **kwargs)
+        return kwargs
+        # return ep_call(self.env, "CustomsInfo.create", **kwargs)
 
     def ep_parcel_create(self):
         kwargs = EP_PARCEL_RULESET.convert(self, check_missing=True)
-        return ep_call(self.env, "Parcel.create", **kwargs)
+        return kwargs
+        # return ep_call(self.env, "Parcel.create", **kwargs)
 
     def ep_shipment(self):
-        return ep_call(self.env, "Shipment.retrieve", self.easypost_shipment_ref)
+        shipment = ep_call(self.env, "Shipment.retrieve", self.easypost_shipment_ref)
+        return shipment
 
     def ep_shipment_buy(self, rate_ref=None, insurance=None):
         ep_shipment = self.ep_shipment()
         kwargs = {}
         if insurance:
             kwargs['insurance'] = insurance
-        rate = ep_shipment.lowest_rate()
+        if not ep_shipment.rates:
+            error_messages = []
+            for msg in ep_shipment.messages:
+                if msg.type == "rate_error":
+                    error_messages.append(msg.message)
+            message = _("No rates were received from the carrier.")
+            if error_messages:
+                message += _(" Errors include:\n\n")
+                message += "\n".join(error_messages)
+            raise exceptions.UserError(message)
+        rate = ep_exec(ep_shipment.lowest_rate)
         if rate_ref:
             rates = filter(lambda r: r.id == rate_ref, ep_shipment.rates)
             if rates:
                 rate = rates[0]
-        ep_shipment = ep_shipment.buy(rate=rate, **kwargs)
+        ep_exec(ep_shipment.buy, rate=rate, **kwargs)
         self.carrier_tracking_ref = ep_shipment.tracking_code
         return ep_shipment
 

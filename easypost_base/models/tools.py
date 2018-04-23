@@ -7,7 +7,7 @@
 ##############################################################################
 
 import easypost
-from odoo.exceptions import AccessError, MissingError
+from odoo.exceptions import UserError
 import logging
 
 _logger = logging.getLogger(__name__)
@@ -33,7 +33,7 @@ def ep_exception(err):
         for error in error_dic['errors']:
             error_list.append('\tField "%s": %s' % (error['field'], error['message']))
         msg += "\n".join(error_list)
-    return AccessError(msg)
+    return UserError(msg)
 
 
 def ep_call(env, method_name, *args, **kwargs):
@@ -47,6 +47,13 @@ def ep_call(env, method_name, *args, **kwargs):
     try:
         method = get_method(method_name)
         return method(*args, **kwargs)
+    except easypost.Error as e:
+        raise ep_exception(e)
+
+
+def ep_exec(func, *args, **kwargs):
+    try:
+        return func(*args, **kwargs)
     except easypost.Error as e:
         raise ep_exception(e)
 
@@ -70,7 +77,11 @@ class EPRule(object):
 
         res = self.convert_fun(rset, get_value())
         if not res and check_missing and self.required:
-            raise MissingError('Cannot convert object: field %s is empty' % self.odoo_attr)
+            message = 'Missing value in {model_name} "{instance_name}": ' \
+                      'field "{field}" is mandatory for shipping'.format(model_name=rset._description,
+                                                                         instance_name=rset.display_name,
+                                                                         field=self.odoo_attr)
+            raise UserError(message)
         return self.ep_field, res
 
 

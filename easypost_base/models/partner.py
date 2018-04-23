@@ -39,4 +39,5 @@ class Partner(models.Model):
         kwargs = EP_PARTNER_RULESET.convert(self, check_missing=True)
         if verify:
             kwargs["verify"] = ["delivery"]
-        return ep_call(self.env, "Address.create", **kwargs)
+        return kwargs
+        # return ep_call(self.env, "Address.create", **kwargs)

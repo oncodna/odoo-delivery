@@ -7,6 +7,7 @@
 ##############################################################################
 
 from odoo import models, fields, api, _
+from .tools import ep_exec
 import urllib2
 import base64
 
@@ -56,6 +57,6 @@ class EasypostCarrier(models.Model):
         return res
 
     def ep_cancel_shipment(self, picking):
-        picking.ep_shipment().refund()
+        ep_exec(picking.ep_shipment().refund)
         picking.write({'carrier_tracking_ref': '',
                        'carrier_price': 0.0})

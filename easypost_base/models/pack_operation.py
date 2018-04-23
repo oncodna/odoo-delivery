@@ -38,4 +38,5 @@ class PackOperation(models.Model):
 
     def ep_customsitem_create(self):
         kwargs = EP_CUSTOMSITEM_RULESET.convert(self, check_missing=True)
-        return ep_call(self.env, "CustomsItem.create", **kwargs)
+        return kwargs
+        # return ep_call(self.env, "CustomsItem.create", **kwargs)
