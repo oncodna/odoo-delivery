@@ -42,7 +42,7 @@ def get_package_details(picking, field):
         return False
     if pack_type.package_carrier_type.lower() == picking.carrier_id.delivery_type.lower():
         return pack_type.shipper_package_code if field == "predefined_package" else False
-    return ep_convert_dimension(pack_type[field])
+    return ep_convert_dimension(pack_type[field]) if field != "predefined_package" else False
 
 
 EP_PARCEL_RULESET = EPRuleSet(

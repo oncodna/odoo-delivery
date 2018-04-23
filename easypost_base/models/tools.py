@@ -7,6 +7,7 @@
 ##############################################################################
 
 import easypost
+from odoo import _
 from odoo.exceptions import UserError
 import logging
 
@@ -77,10 +78,10 @@ class EPRule(object):
 
         res = self.convert_fun(rset, get_value())
         if not res and check_missing and self.required:
-            message = 'Missing value in {model_name} "{instance_name}": ' \
-                      'field "{field}" is mandatory for shipping'.format(model_name=rset._description,
-                                                                         instance_name=rset.display_name,
-                                                                         field=self.odoo_attr)
+            message = _('Missing value in {model_name} "{instance_name}": ' \
+                        'field "{field}" is mandatory for shipping').format(model_name=rset._description,
+                                                                            instance_name=rset.display_name,
+                                                                            field=self.odoo_attr)
             raise UserError(message)
         return self.ep_field, res
 
