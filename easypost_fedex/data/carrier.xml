@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+
+    <record id="ep_fedex_carrier" model="delivery.carrier">
+        <field name="name">FedEx (Easypost)</field>
+        <field name="product_sale_ok" eval="False"/>
+        <field name="product_purchase_ok" eval="False"/>
+        <field name="product_type">service</field>
+        <field name="delivery_type">ep_fedex</field>
+    </record>
+
+</odoo>
