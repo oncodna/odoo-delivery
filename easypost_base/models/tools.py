@@ -59,6 +59,22 @@ def ep_exec(func, *args, **kwargs):
         raise ep_exception(e)
 
 
+def ep_check_shipment_rates(shipment):
+    if not shipment.rates:
+        error_messages = []
+        for msg in shipment.messages:
+            if msg.type == "rate_error":
+                error_messages.append(msg.message)
+        message = _("No rates were received from the carrier.")
+        if error_messages:
+            message += _(" Errors include:\n\n")
+            message += "\n".join(error_messages)
+        else:
+            message += _("\nHint: check if the package type is compatible with the kind of shipment "
+                         "you try to execute")
+        raise UserError(message)
+
+
 class EPRule(object):
 
     def __init__(self, ep_field, odoo_attr=None, convert_fun=None, required=False):

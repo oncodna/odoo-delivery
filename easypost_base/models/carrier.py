@@ -48,11 +48,19 @@ class EasypostCarrier(models.Model):
             res += [picking.ep_shipment().tracker.public_url]
         return res
 
+    def ep_convert_currency(self, amount, to_currency_code):
+        order_currency = self.currency_id or self.company_id.currency_id
+        to_currency = self.env['res.currency'].search([('name', '=ilike', to_currency_code)])
+        if to_currency and to_currency != order_currency:
+            return order_currency.compute(amount, to_currency)
+        return amount
+
     def ep_get_shipping_price_from_so(self, orders):
         res = []
         for order in orders:
             ep_shipment = order.ep_shipment_create()
-            price = ep_shipment.lowest_rate().rate
+            rate = ep_shipment.lowest_rate().rate
+            price = order.ep_convert_currency(rate.rate, rate.currency)
             res = res + [price]
         return res
 

@@ -7,7 +7,7 @@
 ##############################################################################
 
 from odoo import models, fields, api, exceptions, _
-from .tools import ep_call, ep_exec, EPRuleSet, EPRule, ep_convert_weight, ep_convert_dimension
+from .tools import ep_call, ep_exec, EPRuleSet, EPRule, ep_convert_weight, ep_convert_dimension, ep_check_shipment_rates
 import urllib2
 import base64
 
@@ -114,16 +114,7 @@ class Picking(models.Model):
         kwargs = {}
         if insurance:
             kwargs['insurance'] = insurance
-        if not ep_shipment.rates:
-            error_messages = []
-            for msg in ep_shipment.messages:
-                if msg.type == "rate_error":
-                    error_messages.append(msg.message)
-            message = _("No rates were received from the carrier.")
-            if error_messages:
-                message += _(" Errors include:\n\n")
-                message += "\n".join(error_messages)
-            raise exceptions.UserError(message)
+        ep_check_shipment_rates()
         rate = ep_exec(ep_shipment.lowest_rate)
         if rate_ref:
             rates = filter(lambda r: r.id == rate_ref, ep_shipment.rates)
