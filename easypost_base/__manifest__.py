@@ -2,6 +2,7 @@
     "name": "Easypost Delivery (base module)",
     "version": "1.0",
     "depends": ["delivery"],
+    'external_dependencies': {'python': ['easypost']},
     'author': 'OncoDNA',
     'category': 'Stock',
     'license': 'AGPL-3',

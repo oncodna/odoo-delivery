@@ -114,7 +114,7 @@ class Picking(models.Model):
         kwargs = {}
         if insurance:
             kwargs['insurance'] = insurance
-        ep_check_shipment_rates()
+        ep_check_shipment_rates(ep_shipment)
         rate = ep_exec(ep_shipment.lowest_rate)
         if rate_ref:
             rates = filter(lambda r: r.id == rate_ref, ep_shipment.rates)

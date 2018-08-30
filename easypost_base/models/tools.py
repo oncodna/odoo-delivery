@@ -21,7 +21,8 @@ def ep_convert_dimension(dimension):
 
 def ep_convert_weight(weight):
     ''' Convert weight from kg to Oz '''
-    return round(weight * 35.274, 1)
+    res = round(weight * 35.274, 1)
+    return max(res, 1) if weight else 0
 
 
 def ep_exception(err):
@@ -94,10 +95,11 @@ class EPRule(object):
 
         res = self.convert_fun(rset, get_value())
         if not res and check_missing and self.required:
+            field = self.odoo_attr if self.odoo_attr != 'self' else self.ep_field
             message = _('Missing value in {model_name} "{instance_name}": ' \
                         'field "{field}" is mandatory for shipping').format(model_name=rset._description,
                                                                             instance_name=rset.display_name,
-                                                                            field=self.odoo_attr)
+                                                                            field=field)
             raise UserError(message)
         return self.ep_field, res
 
