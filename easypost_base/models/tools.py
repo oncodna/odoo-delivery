@@ -10,6 +10,7 @@ import easypost
 from odoo import _
 from odoo.exceptions import UserError
 import logging
+import urllib2
 
 _logger = logging.getLogger(__name__)
 
@@ -74,6 +75,29 @@ def ep_check_shipment_rates(shipment):
             message += _("\nHint: check if the package type is compatible with the kind of shipment "
                          "you try to execute")
         raise UserError(message)
+
+
+def ep_postage_label(ep_shipment, carrier=None, label_format='pdf'):
+    ep_shipment.label(file_format=label_format.upper())
+    label_url_attr = "label_%s_url" % label_format if label_format != 'png' else "label_url"
+    label_url = getattr(ep_shipment.postage_label, label_url_attr)
+    label_content = urllib2.urlopen(label_url, timeout=5).read()
+    carrier_code = carrier.code or "easypost"
+    file_name = '%s-%s.%s' % (carrier_code, ep_shipment.tracking_code, label_format)
+    return file_name, label_content
+
+
+def ep_shipment_buy(ep_shipment, rate_ref=None, insurance=None):
+    kwargs = {}
+    if insurance:
+        kwargs['insurance'] = insurance
+    ep_check_shipment_rates(ep_shipment)
+    rate = ep_exec(ep_shipment.lowest_rate)
+    if rate_ref:
+        rates = filter(lambda r: r.id == rate_ref, ep_shipment.rates)
+        if rates:
+            rate = rates[0]
+    ep_exec(ep_shipment.buy, rate=rate, **kwargs)
 
 
 class EPRule(object):

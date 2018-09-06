@@ -7,8 +7,8 @@
 ##############################################################################
 
 from odoo import models, fields, api, exceptions, _
-from .tools import ep_call, ep_exec, EPRuleSet, EPRule, ep_convert_weight, ep_convert_dimension, ep_check_shipment_rates
-import urllib2
+from .tools import ep_call, ep_exec, EPRuleSet, EPRule, ep_convert_weight, ep_convert_dimension, \
+    ep_check_shipment_rates, ep_postage_label, ep_shipment_buy
 import base64
 
 """
@@ -69,6 +69,7 @@ EP_SHIPMENT_RULESET = EPRuleSet(
     EPRule("customs_info", 'self', required=True, convert_fun=lambda picking, _p: picking.ep_customsinfo_create()),
     EPRule("carrier_accounts", 'carrier_id.easypost_account',
            convert_fun=lambda picking, ep_account: [ep_account] if ep_account else []),
+    # EPRule("is_return", 'self', required=True, convert_fun=lambda picking, _p: True),
 )
 
 
@@ -80,13 +81,7 @@ class Picking(models.Model):
     def ep_postage_label(self, shipment=None, label_format=None):
         ep_shipment = shipment or self.ep_shipment()
         label_format = (label_format or self.company_id.easypost_label_format or 'pdf').lower()
-        shipment.label(file_format=label_format.upper())
-        label_url_attr = "label_%s_url" % label_format if label_format != 'png' else "label_url"
-        label_url = getattr(ep_shipment.postage_label, label_url_attr)
-        label_content = urllib2.urlopen(label_url, timeout=5).read()
-        carrier_code = self.carrier_id.code or "easypost"
-        file_name = '%s-%s.%s' % (carrier_code, ep_shipment.tracking_code, label_format)
-        return file_name, label_content
+        return ep_postage_label(ep_shipment, carrier=self.carrier_id, label_format=label_format)
 
     def ep_refresh_label(self, label_format=None):
         ep_shipment = self.ep_shipment()
@@ -111,16 +106,7 @@ class Picking(models.Model):
 
     def ep_shipment_buy(self, rate_ref=None, insurance=None):
         ep_shipment = self.ep_shipment()
-        kwargs = {}
-        if insurance:
-            kwargs['insurance'] = insurance
-        ep_check_shipment_rates(ep_shipment)
-        rate = ep_exec(ep_shipment.lowest_rate)
-        if rate_ref:
-            rates = filter(lambda r: r.id == rate_ref, ep_shipment.rates)
-            if rates:
-                rate = rates[0]
-        ep_exec(ep_shipment.buy, rate=rate, **kwargs)
+        ep_shipment_buy(ep_shipment, rate_ref=rate_ref, insurance=insurance)
         self.carrier_tracking_ref = ep_shipment.tracking_code
         return ep_shipment
 
