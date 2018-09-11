@@ -21,7 +21,7 @@ class EasypostCarrier(models.Model):
         for carrier in self:
             carrier.is_easypost = carrier.delivery_type.startswith("ep_")
 
-    easypost_account = fields.Char(string='Easypost Account Number', copy=False)
+    easypost_account = fields.Char(string='Easypost Account Number', copy=False, help='Begins with "ca_"')
     is_easypost = fields.Boolean(string='Easypost Carrier', compute="_is_easypost")
 
     def ep_send_shipping(self, pickings):

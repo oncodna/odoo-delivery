@@ -23,7 +23,7 @@ def ep_convert_dimension(dimension):
 def ep_convert_weight(weight):
     ''' Convert weight from kg to Oz '''
     res = round(weight * 35.274, 1)
-    return max(res, 1) if weight else 0
+    return max(res, 0.1) if weight else 0
 
 
 def ep_exception(err):
