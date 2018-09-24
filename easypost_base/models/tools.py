@@ -78,7 +78,8 @@ def ep_check_shipment_rates(shipment):
 
 
 def ep_postage_label(ep_shipment, carrier=None, label_format='pdf'):
-    ep_shipment.label(file_format=label_format.upper())
+    if label_format != 'png':
+        ep_shipment.label(file_format=label_format.upper())
     label_url_attr = "label_%s_url" % label_format if label_format != 'png' else "label_url"
     label_url = getattr(ep_shipment.postage_label, label_url_attr)
     label_content = urllib2.urlopen(label_url, timeout=5).read()

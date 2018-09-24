@@ -20,7 +20,7 @@ def get_value(operation):
     picking_currency = picking.sale_id.currency_id or picking.company_id.currency_id
     company_currency = picking.company_id.currency_id
     value = operation.product_qty * operation.product_id.standard_price
-    return company_currency.compute(value, picking_currency)
+    return company_currency.compute(value, picking_currency) or 0.1
 
 
 EP_CUSTOMSITEM_RULESET = EPRuleSet(
