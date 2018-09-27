@@ -46,19 +46,35 @@ def ep_call(env, method_name, *args, **kwargs):
             res = getattr(res, attr)
         return res
 
+    if "raise_orm" in kwargs:
+        raise_orm = kwargs['raise_orm']
+        del kwargs['raise_orm']
     easypost.api_key = env.user.company_id.easypost_key
+    _logger.debug('Easypost call to method %s (args: %s, kwargs: %s)', method_name, args, kwargs)
     try:
         method = get_method(method_name)
-        return method(*args, **kwargs)
+        res = method(*args, **kwargs)
+        _logger.debug('Easypost call to method returns %s', str(res))
+        return res
     except easypost.Error as e:
-        raise ep_exception(e)
+        if raise_orm:
+            raise ep_exception(e)
+        raise e
 
 
 def ep_exec(func, *args, **kwargs):
+    if "raise_orm" in kwargs:
+        raise_orm = kwargs['raise_orm']
+        del kwargs['raise_orm']
+    _logger.debug('Easypost call to function %s (args: %s, kwargs: %s)', func.__name__, args, kwargs)
     try:
+        res = func(*args, **kwargs)
+        _logger.debug('Easypost call to function returns %s', str(res))
         return func(*args, **kwargs)
     except easypost.Error as e:
-        raise ep_exception(e)
+        if raise_orm:
+            raise ep_exception(e)
+        raise e
 
 
 def ep_check_shipment_rates(shipment):
@@ -98,7 +114,12 @@ def ep_shipment_buy(ep_shipment, rate_ref=None, insurance=None):
         rates = filter(lambda r: r.id == rate_ref, ep_shipment.rates)
         if rates:
             rate = rates[0]
-    ep_exec(ep_shipment.buy, rate=rate, **kwargs)
+    try:
+        ep_exec(ep_shipment.buy, raise_orm=False, rate=rate, **kwargs)
+    except easypost.Error as e:
+        if e.json_body.get('error', {}).get('code') == u'SHIPMENT.POSTAGE.EXISTS':
+            return
+        raise ep_exception(e)
 
 
 class EPRule(object):
