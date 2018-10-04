@@ -9,6 +9,7 @@
 from odoo import models, fields, api, exceptions, _
 from .tools import ep_call, ep_exec, EPRuleSet, EPRule, ep_convert_weight, ep_convert_dimension, \
     ep_check_shipment_rates, ep_postage_label, ep_shipment_buy
+from odoo.exceptions import ValidationError
 import base64
 
 """
@@ -28,7 +29,7 @@ EP_CUSTOMSINFO_RULESET = EPRuleSet(
     EPRule("customs_items", "pack_operation_product_ids", required=True,
            convert_fun=lambda _p, operations: operations.mapped(lambda o: o.ep_customsitem_create())),
     EPRule("contents_type", "contents_type", required=True),
-    EPRule("contents_explanation", "contents_explanation", convert_fun=lambda _p, _v: False),  # TODO
+    EPRule("contents_explanation", "contents_explanation"),
     EPRule("restriction_type", "self", required=True, convert_fun=lambda _p, _v: 'none'),
     EPRule("customs_certify", "self", convert_fun=lambda _p, _v: True),
     EPRule("customs_signer", "company_id.shipping_responsible_id.name", required=True),
@@ -81,6 +82,16 @@ class Picking(models.Model):
                                       ('returned_goods', 'Returned_Goods'), ('sample', 'Sample'),
                                       ('other', 'Other')], string='Contents Type', default="merchandise", required=True)
     contents_explanation = fields.Text(string='Contents Explanation')
+
+    def _check_mandatory_contents_explanation(self):
+        for picking in self.filtered(lambda p: p.contents_type in ('other',)):
+            if not picking.contents_explanation:
+                raise ValidationError(_('Deliveries with contents type "Other" must provide a contents explanation'))
+
+    @api.multi
+    def do_new_transfer(self):
+        self._check_mandatory_contents_explanation()
+        return super(Picking, self).do_new_transfer()
 
     def ep_postage_label(self, shipment=None, label_format=None):
         ep_shipment = shipment or self.ep_shipment()

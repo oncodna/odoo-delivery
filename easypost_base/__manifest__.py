@@ -13,6 +13,7 @@
         'views/settings.xml',
         'views/carrier.xml',
         'views/picking.xml',
+        'views/product.xml',
     ],
     'installable': True,
     'auto_install': False,

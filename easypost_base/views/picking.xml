@@ -8,8 +8,7 @@
         <field name="arch" type="xml">
             <group name='carrier_data' position="inside">
                 <field name="contents_type" attrs="{'readonly': [('state', '=', 'done')]}"/>
-                <field name="contents_explanation"
-                       attrs="{'readonly': [('state', '=', 'done')], 'required': [('contents_type', '=', 'other')]}"/>
+                <field name="contents_explanation" attrs="{'readonly': [('state', '=', 'done')]}"/>
             </group>
         </field>
     </record>
