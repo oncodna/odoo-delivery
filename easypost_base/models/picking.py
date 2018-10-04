@@ -27,8 +27,8 @@ Proof of Filing Citation (PFC). Which you need is based on the value of the good
 EP_CUSTOMSINFO_RULESET = EPRuleSet(
     EPRule("customs_items", "pack_operation_product_ids", required=True,
            convert_fun=lambda _p, operations: operations.mapped(lambda o: o.ep_customsitem_create())),
-    EPRule("contents_type", "self", required=True, convert_fun=lambda _p, _v: "merchandise"),  # TODO: improve this
-    EPRule("contents_explanation", "self", convert_fun=lambda _p, _v: False),  # TODO
+    EPRule("contents_type", "contents_type", required=True),
+    EPRule("contents_explanation", "contents_explanation", convert_fun=lambda _p, _v: False),  # TODO
     EPRule("restriction_type", "self", required=True, convert_fun=lambda _p, _v: 'none'),
     EPRule("customs_certify", "self", convert_fun=lambda _p, _v: True),
     EPRule("customs_signer", "company_id.shipping_responsible_id.name", required=True),
@@ -77,6 +77,10 @@ class Picking(models.Model):
     _inherit = "stock.picking"
 
     easypost_shipment_ref = fields.Char(string='Easypost Shipment Reference', copy=False)
+    contents_type = fields.Selection([('documents', 'Documents'), ('gift', 'Gift'), ('merchandise', 'Merchandise'),
+                                      ('returned_goods', 'Returned_Goods'), ('sample', 'Sample'),
+                                      ('other', 'Other')], string='Contents Type', default="merchandise", required=True)
+    contents_explanation = fields.Text(string='Contents Explanation')
 
     def ep_postage_label(self, shipment=None, label_format=None):
         ep_shipment = shipment or self.ep_shipment()

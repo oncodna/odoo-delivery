@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="picking_form_view" model="ir.ui.view">
+        <field name="name">stock.picking.form</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="delivery.view_picking_withcarrier_out_form"/>
+        <field name="arch" type="xml">
+            <group name='carrier_data' position="inside">
+                <field name="contents_type" attrs="{'readonly': [('state', '=', 'done')]}"/>
+                <field name="contents_explanation"
+                       attrs="{'readonly': [('state', '=', 'done')], 'required': [('contents_type', '=', 'other')]}"/>
+            </group>
+        </field>
+    </record>
+
+</odoo>

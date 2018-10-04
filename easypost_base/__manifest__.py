@@ -12,6 +12,7 @@
     'data': [
         'views/settings.xml',
         'views/carrier.xml',
+        'views/picking.xml',
     ],
     'installable': True,
     'auto_install': False,
