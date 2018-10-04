@@ -23,8 +23,13 @@ def get_value(operation):
     return company_currency.compute(value, picking_currency) or 0.1
 
 
+def get_description(operation):
+    product = operation.product_id
+    return product.description_delivery or product.name
+
+
 EP_CUSTOMSITEM_RULESET = EPRuleSet(
-    EPRule("description", "product_id.name", required=True),
+    EPRule("description", "self", convert_fun=lambda operation, _v: get_description(operation), required=True),
     EPRule("quantity", 'product_qty', convert_fun=lambda _op, value: str(int(value))),
     EPRule("weight", 'self', required=True, convert_fun=lambda operation, _v: get_weight(operation)),
     EPRule("value", 'self', required=True, convert_fun=lambda operation, _v: get_value(operation)),

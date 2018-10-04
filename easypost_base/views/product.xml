@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="easypost_product_template_form_view" model="ir.ui.view">
+        <field name="name">easypost_product_template_form_view</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_form_view"/>
+        <field name="arch" type="xml">
+
+            <field name="description_sale" position="after">
+                <separator string="Description for Delivery" colspan="4"/>
+                <field name="description_delivery" nolabel="1"
+                       placeholder="This note will be used for customs info on delivery vouchers." colspan="4"/>
+            </field>
+
+        </field>
+    </record>
+
+</odoo>
