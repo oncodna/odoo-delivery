@@ -87,6 +87,9 @@ def ep_exec(func, *args, **kwargs):
 
 def ep_check_shipment_rates(shipment):
     if not shipment.rates:
+        ep_exec(shipment.get_rates)
+        shipment = easypost.Shipment.retrieve(shipment.id)
+    if not shipment.rates:
         error_messages = []
         for msg in shipment.messages:
             if msg.type == "rate_error":
