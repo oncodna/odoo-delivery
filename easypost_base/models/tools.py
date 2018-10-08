@@ -76,10 +76,12 @@ def ep_exec(func, *args, **kwargs):
     try:
         res = func(*args, **kwargs)
         _logger.debug('Easypost call to function %s returns %s', func.__name__, str(res))
-        return func(*args, **kwargs)
+        return res
     except easypost.Error as e:
         msg = ep_error_msg(e)
         _logger.debug('Easypost call to function %s failed with error message %s', func.__name__, msg)
+        import pdb
+        pdb.set_trace()
         if raise_orm:
             raise ep_exception(e)
         raise e
