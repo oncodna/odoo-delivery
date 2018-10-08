@@ -26,7 +26,7 @@ def ep_convert_weight(weight):
     return max(res, 0.1) if weight else 0
 
 
-def ep_exception(err):
+def ep_error_msg(err):
     """TODO: improve this"""
     error_dic = err.json_body["error"]
     msg = error_dic["message"]
@@ -36,7 +36,11 @@ def ep_exception(err):
         for error in error_dic['errors']:
             error_list.append('\tField "%s": %s' % (error['field'], error['message']))
         msg += "\n".join(error_list)
-    return UserError(msg)
+    return msg
+
+
+def ep_exception(err):
+    return UserError(ep_error_msg(err))
 
 
 def ep_call(env, method_name, *args, **kwargs):
@@ -57,8 +61,7 @@ def ep_call(env, method_name, *args, **kwargs):
         _logger.debug('Easypost call to method %s returns %s', method_name, str(res))
         return res
     except easypost.Error as e:
-        error_dic = e.json_body["error"]
-        msg = error_dic["message"]
+        msg = ep_error_msg(e)
         _logger.debug('Easypost call to method %s failed with error message %s', method_name, msg)
         if raise_orm:
             raise ep_exception(e)
@@ -75,8 +78,7 @@ def ep_exec(func, *args, **kwargs):
         _logger.debug('Easypost call to function %s returns %s', func.__name__, str(res))
         return func(*args, **kwargs)
     except easypost.Error as e:
-        error_dic = e.json_body["error"]
-        msg = error_dic["message"]
+        msg = ep_error_msg(e)
         _logger.debug('Easypost call to function %s failed with error message %s', func.__name__, msg)
         if raise_orm:
             raise ep_exception(e)
