@@ -54,9 +54,12 @@ def ep_call(env, method_name, *args, **kwargs):
     try:
         method = get_method(method_name)
         res = method(*args, **kwargs)
-        _logger.debug('Easypost call to method returns %s', str(res))
+        _logger.debug('Easypost call to method %s returns %s', method_name, str(res))
         return res
     except easypost.Error as e:
+        error_dic = e.json_body["error"]
+        msg = error_dic["message"]
+        _logger.debug('Easypost call to method %s failed with error message %s', method_name, msg)
         if raise_orm:
             raise ep_exception(e)
         raise e
@@ -69,9 +72,12 @@ def ep_exec(func, *args, **kwargs):
     _logger.debug('Easypost call to function %s (args: %s, kwargs: %s)', func.__name__, args, kwargs)
     try:
         res = func(*args, **kwargs)
-        _logger.debug('Easypost call to function returns %s', str(res))
+        _logger.debug('Easypost call to function %s returns %s', func.__name__, str(res))
         return func(*args, **kwargs)
     except easypost.Error as e:
+        error_dic = e.json_body["error"]
+        msg = error_dic["message"]
+        _logger.debug('Easypost call to function %s failed with error message %s', func.__name__, msg)
         if raise_orm:
             raise ep_exception(e)
         raise e
@@ -118,8 +124,13 @@ def ep_shipment_buy(ep_shipment, rate_ref=None, insurance=None):
         ep_exec(ep_shipment.buy, raise_orm=False, rate=rate, **kwargs)
     except easypost.Error as e:
         if e.json_body.get('error', {}).get('code') == u'SHIPMENT.POSTAGE.EXISTS':
+            _logger.debug('Easypost "buy shipment" function failed because the shipment has already been purchased')
             return
         raise ep_exception(e)
+
+
+def ep_shipment_refund(ep_shipment):
+    ep_exec(ep_shipment.refund)
 
 
 class EPRule(object):
