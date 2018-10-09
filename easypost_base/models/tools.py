@@ -28,8 +28,8 @@ def ep_convert_weight(weight):
 
 def ep_error_msg(err):
     """TODO: improve this"""
-    error_dic = err.json_body["error"]
-    msg = error_dic["message"]
+    error_dic = err.json_body["error"] if err.json_body else {}
+    msg = error_dic.get("message") or err.message
     if error_dic.get("errors"):
         msg += ":\n"
         error_list = []
@@ -50,8 +50,8 @@ def ep_call(env, method_name, *args, **kwargs):
             res = getattr(res, attr)
         return res
 
+    raise_orm = kwargs.get('raise_orm')
     if "raise_orm" in kwargs:
-        raise_orm = kwargs['raise_orm']
         del kwargs['raise_orm']
     easypost.api_key = env.user.company_id.easypost_key
     _logger.debug('Easypost call to method %s (args: %s, kwargs: %s)', method_name, args, kwargs)
@@ -69,8 +69,8 @@ def ep_call(env, method_name, *args, **kwargs):
 
 
 def ep_exec(func, *args, **kwargs):
+    raise_orm = kwargs.get('raise_orm')
     if "raise_orm" in kwargs:
-        raise_orm = kwargs['raise_orm']
         del kwargs['raise_orm']
     _logger.debug('Easypost call to function %s (args: %s, kwargs: %s)', func.__name__, args, kwargs)
     try:
