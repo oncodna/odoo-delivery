@@ -6,10 +6,8 @@
 #
 ##############################################################################
 
-from odoo import models, fields, api, _
+from odoo import models, fields, api, _, exceptions
 from .tools import ep_exec
-import urllib2
-import base64
 
 
 class EasypostCarrier(models.Model):
@@ -23,21 +21,38 @@ class EasypostCarrier(models.Model):
 
     easypost_account = fields.Char(string='Easypost Account Number', copy=False, help='Begins with "ca_"')
     is_easypost = fields.Boolean(string='Easypost Carrier', compute="_is_easypost")
+    delivery_days = fields.Integer(string='Delivery Days',
+                                   help="If you provide a number of days, the system will select the cheapest "
+                                        "delivery service with a lower or equal number of days for delivery")
+    delivery_date_guaranteed = fields.Boolean(string='Guaranteed Delivery Date',
+                                              help="Check this box if you want the system to select a service with a "
+                                                   "guaranteed delivery window")
+
+    def _get_preferred_rate(self, ep_shipment):
+        rates = ep_shipment.rates
+        if self.delivery_days:
+            rates = filter(lambda r: r.delivery_days <= self.delivery_days, rates)
+        if self.delivery_date_guaranteed:
+            rates = filter(lambda r: r.delivery_date_guaranteed, rates)
+        if not rates:
+            raise exceptions.ValidationError(_("No rate satisfying your preferences were provided by the carrier"))
+        return min(rates, key=lambda r: float(r.rate))
 
     def ep_send_shipping(self, pickings):
         res = []
         for picking in pickings:
-            picking.ep_shipment_create()
+            ep_shipment = picking.ep_shipment_create()
             # TODO: let the user choose among rates
             # TODO: let the user buy an insurance
-            shipment = picking.ep_shipment_buy()
+            rate = self._get_preferred_rate(ep_shipment)
+            picking.ep_shipment_buy(rate_ref=rate.id)
             log_message = (_("Shipment created into %s <br/> <b>Tracking Number : </b>%s") %
-                           (self.name, shipment.tracking_code))
-            file_name, label_data = picking.ep_postage_label(shipment=shipment)
+                           (self.name, ep_shipment.tracking_code))
+            file_name, label_data = picking.ep_postage_label(shipment=ep_shipment)
             picking.message_post(body=log_message, attachments=[(file_name, label_data)])
             shipping_data = {
-                'exact_price': shipment.selected_rate.rate,
-                'tracking_number': shipment.tracking_code
+                'exact_price': ep_shipment.selected_rate.rate,
+                'tracking_number': ep_shipment.tracking_code
             }
             res = res + [shipping_data]
         return res

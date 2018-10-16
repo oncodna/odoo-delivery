@@ -12,6 +12,9 @@
                         <group>
                             <field name="easypost_account" attrs="{'required': [('is_easypost', '=', True)]}"/>
                             <field name="is_easypost" invisible="1"/>
+                            <field name="delivery_days"/>
+                            <field name="delivery_date_guaranteed"
+                                   attrs="{'invisible': [('delivery_days', '=', False)]}"/>
                         </group>
                     </group>
                 </page>

@@ -73,5 +73,4 @@
         <field name="package_carrier_type">ep_dhl</field>
     </record>
 
-
 </odoo>
