@@ -16,10 +16,16 @@
                             <field name="delivery_date_guaranteed"
                                    attrs="{'invisible': [('delivery_days', '=', False)]}"/>
                         </group>
+                        <group>
+                            <field name="preferred_service_ids" widget="many2many_tags"
+                                   domain="[('ep_carrier_id.code', '=like', delivery_type + '%%')]"/>
+                        </group>
                     </group>
                 </page>
             </xpath>
         </field>
     </record>
+
+    <function model="easypost_base.service" name="refresh_services"/>
 
 </odoo>

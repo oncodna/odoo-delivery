@@ -14,6 +14,7 @@
         'views/carrier.xml',
         'views/picking.xml',
         'views/product.xml',
+        'security/ir.model.access.csv',
     ],
     'installable': True,
     'auto_install': False,

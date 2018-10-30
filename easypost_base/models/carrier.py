@@ -8,6 +8,8 @@
 
 from odoo import models, fields, api, _, exceptions
 from .tools import ep_exec
+import os
+from ast import literal_eval
 
 
 class EasypostCarrier(models.Model):
@@ -15,18 +17,43 @@ class EasypostCarrier(models.Model):
 
     @api.multi
     @api.depends('delivery_type')
-    def _is_easypost(self):
+    def _get_easypost_carrier(self):
         for carrier in self:
-            carrier.is_easypost = carrier.delivery_type.startswith("ep_")
+            carrier.is_easypost = (carrier.delivery_type or "").startswith("ep_")
+            carrier.ep_carrier_id = self.env['easypost_base.carrier'].search([('code', '=', carrier.delivery_type)])
 
+    delivery_type = fields.Selection(selection_add=[('ep_', "Easypost (all carriers)")])
     easypost_account = fields.Char(string='Easypost Account Number', copy=False, help='Begins with "ca_"')
-    is_easypost = fields.Boolean(string='Easypost Carrier', compute="_is_easypost")
+    is_easypost = fields.Boolean(string='Easypost Carrier', compute="_get_easypost_carrier")
     delivery_days = fields.Integer(string='Delivery Days',
                                    help="If you provide a number of days, the system will select the cheapest "
                                         "delivery service with a lower or equal number of days for delivery")
     delivery_date_guaranteed = fields.Boolean(string='Guaranteed Delivery Date',
                                               help="Check this box if you want the system to select a service with a "
                                                    "guaranteed delivery window")
+    ep_carrier_id = fields.Many2one('easypost_base.carrier', string="Provider", compute="_get_easypost_carrier")
+    preferred_service_ids = fields.Many2many('easypost_base.service', 'ep_carrier_service_rel', 'carrier_id',
+                                             'service_id', string='Preferred Services', )
+
+    @api.multi
+    def name_get(self):
+        result = []
+        default = dict(super(EasypostCarrier, self).name_get())
+        for carrier in self:
+            if carrier.is_easypost and not 'easypost' in default[carrier.id].lower():
+                name = default[carrier.id] + " (Easypost)"
+            else:
+                name = default[carrier.id]
+            result.append((carrier.id, name))
+        return result
+
+    @api.onchange('delivery_type')
+    def filter_services(self):
+        self.preferred_service_ids = False
+        deli_dom = [('ep_carrier_id', '=', self.ep_carrier_id.id)]
+        if self.delivery_type == "ep_":
+            deli_dom = []
+        return {'domain': {'preferred_service_ids': deli_dom}}
 
     def _get_preferred_rate(self, ep_shipment):
         rates = ep_shipment.rates
@@ -34,6 +61,8 @@ class EasypostCarrier(models.Model):
             rates = filter(lambda r: r.delivery_days <= self.delivery_days, rates)
         if self.delivery_date_guaranteed:
             rates = filter(lambda r: r.delivery_date_guaranteed, rates)
+        if self.preferred_service_ids:
+            rates = filter(lambda r: r.service in self.preferred_service_ids.mapped('name'), rates)
         if not rates:
             raise exceptions.ValidationError(_("No rate satisfying your preferences were provided by the carrier"))
         return min(rates, key=lambda r: float(r.rate))
@@ -83,3 +112,49 @@ class EasypostCarrier(models.Model):
         ep_exec(picking.ep_shipment().refund)
         picking.write({'carrier_tracking_ref': '',
                        'carrier_price': 0.0})
+
+
+class EasypostService(models.Model):
+    _name = 'easypost_base.service'
+
+    @api.depends("name")
+    def _get_code(self):
+        for car in self:
+            car.code = "ep_%s" % car.name.lower().replace(' ', '_')
+
+    ep_carrier_id = fields.Many2one('easypost_base.carrier', string="Provider")
+    name = fields.Char("Name", required=True)
+    code = fields.Char("Code", compute="_get_code", store=True)
+
+    @api.model
+    def refresh_services(self, delivery_type=None):
+        with open(os.path.join(os.path.dirname(__file__), "../data/services.py")) as services_file:
+            services_dic = literal_eval(services_file.read())
+            for carrier in services_dic:
+                ep_carrier = self.env['easypost_base.carrier'].create({'name': carrier})
+                if delivery_type and ep_carrier.code != delivery_type:
+                    continue
+                for srv_name in services_dic[carrier]:
+                    code = srv_name.lower().replace(' ', '_')
+                    exists = self.search([('ep_carrier_id', '=', ep_carrier.id), ('code', '=', code)])
+                    if not exists:
+                        self.sudo().create({'code': code, 'name': srv_name, 'ep_carrier_id': ep_carrier.id})
+
+
+class EasypostProvider(models.Model):
+    _name = 'easypost_base.carrier'
+
+    @api.depends("name")
+    def _get_code(self):
+        for car in self:
+            car.code = "ep_%s" % car.name.lower().replace(' ', '_')
+
+    name = fields.Char("Name", required=True)
+    code = fields.Char("Code", compute="_get_code", store=True)
+
+    @api.model
+    def create(self, vals):
+        exists = self.search([('name', '=', vals['name'])])
+        if exists:
+            return exists
+        return super(EasypostProvider, self).create(vals)
