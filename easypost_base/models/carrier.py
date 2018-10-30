@@ -135,10 +135,9 @@ class EasypostService(models.Model):
                 if delivery_type and ep_carrier.code != delivery_type:
                     continue
                 for srv_name in services_dic[carrier]:
-                    code = srv_name.lower().replace(' ', '_')
-                    exists = self.search([('ep_carrier_id', '=', ep_carrier.id), ('code', '=', code)])
+                    exists = self.search([('ep_carrier_id', '=', ep_carrier.id), ('name', '=', srv_name)])
                     if not exists:
-                        self.sudo().create({'code': code, 'name': srv_name, 'ep_carrier_id': ep_carrier.id})
+                        self.sudo().create({'name': srv_name, 'ep_carrier_id': ep_carrier.id})
 
 
 class EasypostProvider(models.Model):
