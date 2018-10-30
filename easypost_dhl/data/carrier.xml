@@ -2,11 +2,11 @@
 <odoo noupdate="1">
 
     <record id="ep_dhl_carrier" model="delivery.carrier">
-        <field name="name">DHL Express (Easypost)</field>
+        <field name="name">DHLExpress</field>
         <field name="product_sale_ok" eval="False"/>
         <field name="product_purchase_ok" eval="False"/>
         <field name="product_type">service</field>
-        <field name="delivery_type">ep_dhl</field>
+        <field name="delivery_type">ep_dhlexpress</field>
     </record>
 
 </odoo>
