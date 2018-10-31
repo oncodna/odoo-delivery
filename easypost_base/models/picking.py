@@ -7,7 +7,7 @@
 ##############################################################################
 
 from odoo import models, fields, api, exceptions, _
-from .tools import ep_call, ep_exec, EPRuleSet, EPRule, ep_convert_weight, ep_convert_dimension, \
+from .tools import ep_call, ep_exec, EPMapper, EPMapping, ep_convert_weight, ep_convert_dimension, \
     ep_check_shipment_rates, ep_postage_label, ep_shipment_buy
 from odoo.exceptions import ValidationError
 import base64
@@ -25,15 +25,15 @@ of what is required.
 eel_pfc = When shipping outside the US, you need to provide either an Exemption and Exclusion Legend (EEL) code or a 
 Proof of Filing Citation (PFC). Which you need is based on the value of the goods being shipped."""
 
-EP_CUSTOMSINFO_RULESET = EPRuleSet(
-    EPRule("customs_items", "pack_operation_product_ids", required=True,
+EP_CUSTOMSINFO_MAPPER = EPMapper(
+    EPMapping("customs_items", "pack_operation_product_ids", required=True,
            convert_fun=lambda _p, operations: operations.mapped(lambda o: o.ep_customsitem_create())),
-    EPRule("contents_type", "contents_type", required=True),
-    EPRule("contents_explanation", "contents_explanation"),
-    EPRule("restriction_type", "self", required=True, convert_fun=lambda _p, _v: 'none'),
-    EPRule("customs_certify", "self", convert_fun=lambda _p, _v: True),
-    EPRule("customs_signer", "company_id.shipping_responsible_id.name", required=True),
-    EPRule("eel_pfc", "self", convert_fun=lambda _p, _v: "NOEEI 30.37(a)"),  # TODO: improve this
+    EPMapping("contents_type", "contents_type", required=True),
+    EPMapping("contents_explanation", "contents_explanation"),
+    EPMapping("restriction_type", "self", required=True, convert_fun=lambda _p, _v: 'none'),
+    EPMapping("customs_certify", "self", convert_fun=lambda _p, _v: True),
+    EPMapping("customs_signer", "company_id.shipping_responsible_id.name", required=True),
+    EPMapping("eel_pfc", "self", convert_fun=lambda _p, _v: "NOEEI 30.37(a)"),  # TODO: improve this
 )
 
 
@@ -46,12 +46,12 @@ def get_package_details(picking, field):
     return ep_convert_dimension(pack_type[field]) if field != "predefined_package" else False
 
 
-EP_PARCEL_RULESET = EPRuleSet(
-    EPRule("weight", "shipping_weight", required=True, convert_fun=lambda picking, value: ep_convert_weight(value)),
-    EPRule("length", 'package_ids', convert_fun=lambda picking, value: get_package_details(picking, "length")),
-    EPRule("width", 'package_ids', convert_fun=lambda picking, value: get_package_details(picking, "width")),
-    EPRule("height", 'package_ids', convert_fun=lambda picking, value: get_package_details(picking, "height")),
-    EPRule("predefined_package", 'package_ids',
+EP_PARCEL_MAPPER = EPMapper(
+    EPMapping("weight", "shipping_weight", required=True, convert_fun=lambda picking, value: ep_convert_weight(value)),
+    EPMapping("length", 'package_ids', convert_fun=lambda picking, value: get_package_details(picking, "length")),
+    EPMapping("width", 'package_ids', convert_fun=lambda picking, value: get_package_details(picking, "width")),
+    EPMapping("height", 'package_ids', convert_fun=lambda picking, value: get_package_details(picking, "height")),
+    EPMapping("predefined_package", 'package_ids',
            convert_fun=lambda picking, value: get_package_details(picking, "predefined_package")),
 )
 
@@ -61,16 +61,16 @@ def get_address_from(picking, location_partner):
     return partner.ep_address_create(verify=True)
 
 
-EP_SHIPMENT_RULESET = EPRuleSet(
-    EPRule("mode", "carrier_id.prod_environment", convert_fun=lambda _o, value: 'production' if value else 'test'),
-    EPRule("to_address", 'partner_id', required=True,
+EP_SHIPMENT_MAPPER = EPMapper(
+    EPMapping("mode", "carrier_id.prod_environment", convert_fun=lambda _o, value: 'production' if value else 'test'),
+    EPMapping("to_address", 'partner_id', required=True,
            convert_fun=lambda picking, partner: partner.ep_address_create(verify=True)),
-    EPRule("from_address", 'location_id.partner_id', required=True, convert_fun=get_address_from),
-    EPRule("parcel", 'self', required=True, convert_fun=lambda picking, _p: picking.ep_parcel_create()),
-    EPRule("customs_info", 'self', required=True, convert_fun=lambda picking, _p: picking.ep_customsinfo_create()),
-    EPRule("carrier_accounts", 'carrier_id.easypost_account',
+    EPMapping("from_address", 'location_id.partner_id', required=True, convert_fun=get_address_from),
+    EPMapping("parcel", 'self', required=True, convert_fun=lambda picking, _p: picking.ep_parcel_create()),
+    EPMapping("customs_info", 'self', required=True, convert_fun=lambda picking, _p: picking.ep_customsinfo_create()),
+    EPMapping("carrier_accounts", 'carrier_id.easypost_account',
            convert_fun=lambda picking, ep_account: [ep_account] if ep_account else []),
-    # EPRule("is_return", 'self', required=True, convert_fun=lambda picking, _p: True),
+    # EPMapping("is_return", 'self', required=True, convert_fun=lambda picking, _p: True),
 )
 
 
@@ -106,12 +106,12 @@ class Picking(models.Model):
         self.message_post(body=log_message, attachments=[(file_name, label_data)])
 
     def ep_customsinfo_create(self):
-        kwargs = EP_CUSTOMSINFO_RULESET.convert(self, check_missing=True)
+        kwargs = EP_CUSTOMSINFO_MAPPER.convert(self, check_missing=True)
         return kwargs
         # return ep_call(self.env, "CustomsInfo.create", **kwargs)
 
     def ep_parcel_create(self):
-        kwargs = EP_PARCEL_RULESET.convert(self, check_missing=True)
+        kwargs = EP_PARCEL_MAPPER.convert(self, check_missing=True)
         return kwargs
         # return ep_call(self.env, "Parcel.create", **kwargs)
 
@@ -130,7 +130,7 @@ class Picking(models.Model):
         if self.easypost_shipment_ref:
             ep_shipment = self.ep_shipment()
         else:
-            kwargs = EP_SHIPMENT_RULESET.convert(self, check_missing=True)
+            kwargs = EP_SHIPMENT_MAPPER.convert(self, check_missing=True)
             currency = self.sale_id.currency_id or self.company_id.currency_id
             kwargs['options'] = {
                 "currency": currency.name,

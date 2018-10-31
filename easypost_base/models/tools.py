@@ -138,7 +138,7 @@ def ep_shipment_refund(ep_shipment):
     ep_exec(ep_shipment.refund)
 
 
-class EPRule(object):
+class EPMapping(object):
 
     def __init__(self, ep_field, odoo_attr=None, convert_fun=None, required=False):
         self.ep_field = ep_field
@@ -167,7 +167,7 @@ class EPRule(object):
         return self.ep_field, res
 
 
-class EPRuleSet(object):
+class EPMapper(object):
 
     def __init__(self, *rules):
         self.dict_from = dict((r.ep_field, r) for r in rules)

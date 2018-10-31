@@ -7,7 +7,7 @@
 ##############################################################################
 
 from odoo import models, fields, api, exceptions, _
-from .tools import ep_call, EPRuleSet, EPRule, ep_convert_weight, ep_convert_dimension
+from .tools import ep_call, EPMapper, EPMapping, ep_convert_weight, ep_convert_dimension
 
 
 def get_weight(operation):
@@ -28,13 +28,13 @@ def get_description(operation):
     return product.description_delivery or product.name
 
 
-EP_CUSTOMSITEM_RULESET = EPRuleSet(
-    EPRule("description", "self", convert_fun=lambda operation, _v: get_description(operation), required=True),
-    EPRule("quantity", 'product_qty', convert_fun=lambda _op, value: str(int(value))),
-    EPRule("weight", 'self', required=True, convert_fun=lambda operation, _v: get_weight(operation)),
-    EPRule("value", 'self', required=True, convert_fun=lambda operation, _v: get_value(operation)),
-    EPRule("hs_tariff_number", 'product_id.hs_code'),
-    EPRule("origin_country", 'picking_id.company_id.country_id.code'),
+EP_CUSTOMSITEM_MAPPER = EPMapper(
+    EPMapping("description", "self", convert_fun=lambda operation, _v: get_description(operation), required=True),
+    EPMapping("quantity", 'product_qty', convert_fun=lambda _op, value: str(int(value))),
+    EPMapping("weight", 'self', required=True, convert_fun=lambda operation, _v: get_weight(operation)),
+    EPMapping("value", 'self', required=True, convert_fun=lambda operation, _v: get_value(operation)),
+    EPMapping("hs_tariff_number", 'product_id.hs_code'),
+    EPMapping("origin_country", 'picking_id.company_id.country_id.code'),
 )
 
 
@@ -42,6 +42,6 @@ class PackOperation(models.Model):
     _inherit = "stock.pack.operation"
 
     def ep_customsitem_create(self):
-        kwargs = EP_CUSTOMSITEM_RULESET.convert(self, check_missing=True)
+        kwargs = EP_CUSTOMSITEM_MAPPER.convert(self, check_missing=True)
         return kwargs
         # return ep_call(self.env, "CustomsItem.create", **kwargs)
