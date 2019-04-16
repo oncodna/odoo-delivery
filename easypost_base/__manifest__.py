@@ -1,6 +1,6 @@
 {
-    "name": "Easypost Delivery (base module)",
-    "version": "1.0",
+    "name": "Easypost Delivery (complete module for all carriers)",
+    "version": "2.0",
     "depends": ["delivery"],
     'external_dependencies': {'python': ['easypost']},
     'author': 'OncoDNA',

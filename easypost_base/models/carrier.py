@@ -8,21 +8,45 @@
 
 from odoo import models, fields, api, _, exceptions
 from .tools import ep_exec
+from collections import OrderedDict
 import os
 from ast import literal_eval
+
+EP_PREFIX = 'ep_'
+
+
+def set_field_ep_carriers_selection(env, field):
+    added = []
+    selection_dic = OrderedDict(field.selection)
+    ep_carriers = env['easypost_base.carrier'].search([('installed', '=', True)])
+    for (code, _name) in field.selection:
+        if code.startswith(EP_PREFIX) and code != EP_PREFIX and code not in ep_carriers.mapped("code") \
+                and code in selection_dic:
+            del selection_dic[code]
+    for carrier in ep_carriers:
+        if carrier.code not in selection_dic:
+            selection_dic[carrier.code] = carrier.name + " (Easypost)"
+            added.append(carrier)
+    field.selection = selection_dic.items()
 
 
 class EasypostCarrier(models.Model):
     _inherit = 'delivery.carrier'
 
+    @api.model
+    def _setup_base(self, partial):
+        super(EasypostCarrier, self)._setup_base(partial)
+        if self.env['easypost_base.carrier']._fields:
+            set_field_ep_carriers_selection(self.env, self._fields['delivery_type'])
+
     @api.multi
     @api.depends('delivery_type')
     def _get_easypost_carrier(self):
         for carrier in self:
-            carrier.is_easypost = (carrier.delivery_type or "").startswith("ep_")
+            carrier.is_easypost = (carrier.delivery_type or "").startswith(EP_PREFIX)
             carrier.ep_carrier_id = self.env['easypost_base.carrier'].search([('code', '=', carrier.delivery_type)])
 
-    delivery_type = fields.Selection(selection_add=[('ep_', "Easypost (all carriers)")])
+    delivery_type = fields.Selection(selection_add=[(EP_PREFIX, "Easypost (all carriers)")])
     easypost_account = fields.Char(string='Easypost Account Number', copy=False, help='Begins with "ca_"')
     is_easypost = fields.Boolean(string='Easypost Carrier', compute="_get_easypost_carrier")
     delivery_days = fields.Integer(string='Delivery Days',
@@ -51,7 +75,7 @@ class EasypostCarrier(models.Model):
     def filter_services(self):
         self.preferred_service_ids = False
         deli_dom = [('ep_carrier_id', '=', self.ep_carrier_id.id)]
-        if self.delivery_type == "ep_":
+        if self.delivery_type == EP_PREFIX:
             deli_dom = []
         return {'domain': {'preferred_service_ids': deli_dom}}
 
@@ -113,6 +137,19 @@ class EasypostCarrier(models.Model):
         picking.write({'carrier_tracking_ref': '',
                        'carrier_price': 0.0})
 
+    def __getattribute__(self, name):
+        magic_methods = ['send_shipping', 'get_tracking_link', 'get_shipping_price_from_so', 'cancel_shipment']
+        if any((name.startswith(EP_PREFIX) and name.endswith(m)) for m in magic_methods):
+            try:
+                return super(EasypostCarrier, self).__getattribute__(name)
+            except AttributeError:
+                ep_carriers = self.env['easypost_base.carrier'].search([('installed', '=', True)])
+                for method in magic_methods:
+                    if any((name == code + "_" + method) for code in ep_carriers.mapped('code')):
+                        return super(EasypostCarrier, self).__getattribute__(EP_PREFIX + method)
+                raise
+        return super(EasypostCarrier, self).__getattribute__(name)
+
 
 class EasypostService(models.Model):
     _name = 'easypost_base.service'
@@ -120,7 +157,7 @@ class EasypostService(models.Model):
     @api.depends("name")
     def _get_code(self):
         for car in self:
-            car.code = "ep_%s" % car.name.lower().replace(' ', '_')
+            car.code = "%s%s" % (EP_PREFIX, car.name.lower().replace(' ', '_'))
 
     ep_carrier_id = fields.Many2one('easypost_base.carrier', string="Provider")
     name = fields.Char("Name", required=True)
@@ -128,6 +165,7 @@ class EasypostService(models.Model):
 
     @api.model
     def refresh_services(self, delivery_type=None):
+        set_field_ep_carriers_selection(self.env, self.env['delivery.carrier']._fields["delivery_type"])
         with open(os.path.join(os.path.dirname(__file__), "../data/services.py")) as services_file:
             services_dic = literal_eval(services_file.read())
             for carrier in services_dic:
@@ -136,20 +174,22 @@ class EasypostService(models.Model):
                     continue
                 for srv_name in services_dic[carrier]:
                     exists = self.search([('ep_carrier_id', '=', ep_carrier.id), ('name', '=', srv_name)])
-                    if not exists:
+                    if not exists and ep_carrier.installed:
                         self.sudo().create({'name': srv_name, 'ep_carrier_id': ep_carrier.id})
 
 
 class EasypostProvider(models.Model):
     _name = 'easypost_base.carrier'
+    _order = 'name'
 
     @api.depends("name")
     def _get_code(self):
         for car in self:
-            car.code = "ep_%s" % car.name.lower().replace(' ', '_')
+            car.code = "%s%s" % (EP_PREFIX, car.name.lower().replace(' ', '_'))
 
     name = fields.Char("Name", required=True)
     code = fields.Char("Code", compute="_get_code", store=True)
+    installed = fields.Boolean("Installed")
 
     @api.model
     def create(self, vals):

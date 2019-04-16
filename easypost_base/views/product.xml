@@ -16,4 +16,6 @@
         </field>
     </record>
 
+    <function model="product.packaging" name="refresh_packaging"/>
+
 </odoo>
