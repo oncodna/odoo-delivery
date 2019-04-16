@@ -176,6 +176,8 @@
                 'JetLine',
                 'JumboBox',
                 'LogisticsServices',
+                'MedicalExpress',
+                'MedicalExpressNonDoc',
                 'SameDay',
                 'SecureLine',
                 'SprintLine'],
