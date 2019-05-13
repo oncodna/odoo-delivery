@@ -34,8 +34,8 @@ class EasypostCarrier(models.Model):
     _inherit = 'delivery.carrier'
 
     @api.model
-    def _setup_base(self, partial):
-        super(EasypostCarrier, self)._setup_base(partial)
+    def _setup_complete(self):
+        super(EasypostCarrier, self)._setup_complete()
         if self.env['easypost_base.carrier']._fields:
             set_field_ep_carriers_selection(self.env, self._fields['delivery_type'])
 
