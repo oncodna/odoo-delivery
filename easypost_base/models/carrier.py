@@ -18,16 +18,21 @@ EP_PREFIX = 'ep_'
 def set_field_ep_carriers_selection(env, field):
     added = []
     selection_dic = OrderedDict(field.selection)
-    ep_carriers = env['easypost_base.carrier'].search([('installed', '=', True)])
-    for (code, _name) in field.selection:
-        if code.startswith(EP_PREFIX) and code != EP_PREFIX and code not in ep_carriers.mapped("code") \
-                and code in selection_dic:
-            del selection_dic[code]
-    for carrier in ep_carriers:
-        if carrier.code not in selection_dic:
-            selection_dic[carrier.code] = carrier.name + " (Easypost)"
-            added.append(carrier)
-    field.selection = selection_dic.items()
+    column_exists_query = """SELECT column_name 
+                       FROM information_schema.columns 
+                       WHERE table_name='easypost_base_carrier' AND column_name='installed';"""
+    env.cr.execute(column_exists_query)
+    if env.cr.fetchall():
+        ep_carriers = env['easypost_base.carrier'].search([('installed', '=', True)])
+        for (code, _name) in field.selection:
+            if code.startswith(EP_PREFIX) and code != EP_PREFIX and code not in ep_carriers.mapped("code") \
+                    and code in selection_dic:
+                del selection_dic[code]
+        for carrier in ep_carriers:
+            if carrier.code not in selection_dic:
+                selection_dic[carrier.code] = carrier.name + " (Easypost)"
+                added.append(carrier)
+        field.selection = selection_dic.items()
 
 
 class EasypostCarrier(models.Model):
