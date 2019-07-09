@@ -93,8 +93,10 @@ class EasypostCarrier(models.Model):
         if self.preferred_service_ids:
             rates = filter(lambda r: r.service in self.preferred_service_ids.mapped('name'), rates)
         if not rates:
-            raise exceptions.ValidationError(_("No rate satisfying your preferences were provided by the carrier"))
-        return min(rates, key=lambda r: float(r.rate))
+            raise exceptions.ValidationError(_("No rate satisfying your preferences were provided by the carrier. A "
+                                               "frequent cause of this is an invalid address (street and number in "
+                                               "particular)."))
+        return min(rates, key=lambda r: float(r.rate.replace(',', '.')))
 
     def ep_send_shipping(self, pickings):
         res = []
