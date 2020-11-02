@@ -1,6 +1,6 @@
 {
     "name": "Easypost Delivery DHL Express",
-    "version": "2.0",
+    "version": "10.0.2.0.0",
     "depends": ["easypost_base"],
     'author': 'OncoDNA',
     'category': 'Stock',

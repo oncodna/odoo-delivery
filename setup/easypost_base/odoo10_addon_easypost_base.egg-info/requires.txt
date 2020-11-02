@@ -1,0 +1,2 @@
+easypost
+odoo<10.1dev,>=10.0

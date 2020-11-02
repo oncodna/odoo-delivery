@@ -1,0 +1,14 @@
+Metadata-Version: 1.2
+Name: odoo10-addon-easypost-base
+Version: 10.0.2.0.0.dev1
+Summary: Easypost Delivery (complete module for all carriers)
+Home-page: UNKNOWN
+Author: OncoDNA
+License: AGPL-3
+Description: 
+                
+Platform: UNKNOWN
+Classifier: Programming Language :: Python
+Classifier: Framework :: Odoo
+Classifier: License :: OSI Approved :: GNU Affero General Public License v3
+Requires-Python: ~=2.7
