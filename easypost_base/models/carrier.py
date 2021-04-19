@@ -41,6 +41,17 @@ def set_field_ep_carriers_selection(env, field):
         field.selection = selection_dic.items()
 
 
+def format_shipment_forms(ep_shipment):
+    res = []
+    for form in ep_shipment.forms:
+        if form.form_type and form.form_url:
+            label = (" ".join(form.form_type.split("_"))).title()
+            res.append(_('<a href="%s" target="_blank">Download "%s"</a>') % (form.form_url, label,))
+    if res:
+        return "<br/>" + "<br/>".join(res)
+    return ""
+
+
 class EasypostCarrier(models.Model):
     _inherit = "delivery.carrier"
 
@@ -125,11 +136,12 @@ class EasypostCarrier(models.Model):
             # TODO: let the user choose among rates
             # TODO: let the user buy an insurance
             rate = self._get_preferred_rate(ep_shipment)
-            picking.ep_shipment_buy(rate_ref=rate.id)
-            log_message = _("Shipment created into %s <br/> <b>Tracking Number : </b>%s") % (
+            ep_shipment = picking.ep_shipment_buy(rate_ref=rate.id)
+            log_message = _('Shipment created into "%s" <br/> <b>Tracking Number : </b>%s') % (
                 self.name,
                 ep_shipment.tracking_code,
             )
+            log_message += format_shipment_forms(ep_shipment)
             file_name, label_data = picking.ep_postage_label(shipment=ep_shipment)
             picking.message_post(body=log_message, attachments=[(file_name, label_data)])
             shipping_data = {
