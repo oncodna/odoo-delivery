@@ -158,16 +158,15 @@ class Picking(models.Model):
         self.carrier_tracking_ref = ep_shipment.tracking_code
         return ep_shipment
 
-    def ep_shipment_create(self):
+    def ep_shipment_create(self, **kwargs):
         self.ensure_one()
         if self.easypost_shipment_ref:
             ep_shipment = self.ep_shipment()
         else:
-            kwargs = EP_SHIPMENT_MAPPER.convert(self, check_missing=True)
+            kwargs.update(EP_SHIPMENT_MAPPER.convert(self, check_missing=True))
             currency = self.sale_id.currency_id or self.company_id.currency_id
-            kwargs["options"] = {
-                "currency": currency.name,
-            }
+            kwargs.setdefault("options", {})
+            kwargs["options"]["currency"] = currency.name
             ep_shipment = ep_call(self.env, "Shipment.create", **kwargs)
             self.easypost_shipment_ref = ep_shipment.id
         # ep_shipment.get_rates()
